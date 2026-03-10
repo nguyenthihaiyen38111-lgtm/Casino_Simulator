@@ -200,8 +200,11 @@ struct ProfileView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let m = Layout.metrics(for: proxy.size.width)
+            let width = proxy.size.width
+            let isCompact = Layout.isCompact(width)
+            let m = Layout.metrics(for: width)
             let safeTop = proxy.safeAreaInsets.top
+            let bottomScrollInset = bottomInset(for: proxy.safeAreaInsets.bottom, isCompact: isCompact)
 
             ZStack {
                 Image(Assets.background)
@@ -232,13 +235,16 @@ struct ProfileView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: m.sectionSpacing) {
                         header(safeTop: safeTop, m: m)
-                        playerCard(m: m, isCompact: Layout.isCompact(proxy.size.width))
+                        playerCard(m: m, isCompact: isCompact)
                         statsGrid(m: m)
                         progressCard(m: m)
                         resetProgressButton(m: m)
+
+                        Color.clear
+                            .frame(height: bottomScrollInset)
                     }
                     .padding(.horizontal, m.screenHorizontal)
-                    .padding(.bottom, max(20, proxy.safeAreaInsets.bottom + 12))
+                    .padding(.top, 2)
                     .opacity(appear ? 1 : 0)
                     .offset(y: appear ? 0 : 14)
                 }
@@ -277,6 +283,11 @@ struct ProfileView: View {
         } message: {
             Text("This will clear coins, level, quests, achievements and all progress. This action cannot be undone.")
         }
+    }
+
+    private func bottomInset(for safeBottom: CGFloat, isCompact: Bool) -> CGFloat {
+        let baseInset: CGFloat = isCompact ? 120 : 88
+        return baseInset + safeBottom
     }
 
     private func header(safeTop: CGFloat, m: Layout.Metrics) -> some View {

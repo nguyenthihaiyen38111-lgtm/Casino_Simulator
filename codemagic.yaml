@@ -1,0 +1,35 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: CREJSС
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.nguyen.lounge
+      vars:
+        BUNDLE_ID: com.nguyen.lounge
+        NSE_BUNDLE_ID: com.nguyen.lounge
+        XCODE_PROJECT: "Casino_Simulator.xcodeproj"
+        XCODE_SCHEME: "Casino_Simulator"
+        APP_STORE_APPLE_ID: 6760123102
+      xcode: latest
+    scripts:
+      - name: Set up provisioning profiles settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData//Build//*.app
+      - $HOME/Library/Developer/Xcode/DerivedData//Build//*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration

@@ -1722,12 +1722,15 @@ private struct BetSheetOverlay: View {
 
     @State private var appear = false
     @State private var dragY: CGFloat = 0
+    @State private var closeTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
-            Color.black.opacity(appear ? 0.55 : 0.0)
+            Color.black.opacity(appear ? 0.58 : 0.0)
                 .ignoresSafeArea()
-                .onTapGesture { dismiss() }
+                .onTapGesture {
+                    dismiss()
+                }
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -1736,10 +1739,11 @@ private struct BetSheetOverlay: View {
                     .frame(maxWidth: metrics.maxW)
                     .padding(.horizontal, metrics.side)
                     .padding(.bottom, metrics.bottomPad)
-                    .offset(y: max(0, dragY) + (appear ? 0 : 34))
+                    .offset(y: max(0, dragY) + (appear ? 0 : 40))
                     .opacity(appear ? 1 : 0)
-                    .animation(.spring(response: 0.36, dampingFraction: 0.92), value: appear)
-                    .animation(.spring(response: 0.30, dampingFraction: 0.92), value: dragY)
+                    .scaleEffect(appear ? 1.0 : 0.985, anchor: .bottom)
+                    .animation(.spring(response: 0.36, dampingFraction: 0.90), value: appear)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.92), value: dragY)
                     .gesture(
                         DragGesture(minimumDistance: 6, coordinateSpace: .global)
                             .onChanged { value in
@@ -1747,116 +1751,230 @@ private struct BetSheetOverlay: View {
                                 dragY = dy > 0 ? dy : 0
                             }
                             .onEnded { value in
-                                let dy = value.translation.height
-                                let shouldClose = dy > 120 || value.predictedEndTranslation.height > 180
-                                if shouldClose { dismiss() } else { dragY = 0 }
+                                let shouldClose = value.translation.height > 120 || value.predictedEndTranslation.height > 180
+                                if shouldClose {
+                                    dismiss()
+                                } else {
+                                    dragY = 0
+                                }
                             }
                     )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
+            closeTask?.cancel()
             draft = min(draft, maxAllowed)
             selected = min(selected, maxAllowed)
             dragY = 0
             appear = false
-            withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) { appear = true }
+
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.90)) {
+                appear = true
+            }
+        }
+        .onDisappear {
+            closeTask?.cancel()
         }
     }
 
     private var sheet: some View {
-        VStack(spacing: 12) {
-            header
+        VStack(spacing: 0) {
+            handle
+                .padding(.top, 10)
+                .padding(.bottom, 10)
 
-            HStack(spacing: 10) {
-                pill(title: "Current", value: formatCoins(selected))
-                pill(title: "Draft", value: formatCoins(draft))
-            }
+            header
+                .padding(.horizontal, 16)
+
+            Spacer().frame(height: 14)
+
+            summaryRow
+                .padding(.horizontal, 16)
+
+            Spacer().frame(height: 14)
 
             grid
+                .padding(.horizontal, 16)
+
+            Spacer().frame(height: 16)
 
             footer
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
         }
-        .padding(14)
+        .padding(.top, 4)
         .background(
-            RoundedRectangle(cornerRadius: metrics.corner, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            theme.panelFill.opacity(0.98),
-                            theme.panelFill2.opacity(0.99),
-                            theme.panelFill.opacity(0.96)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            ZStack {
+                RoundedRectangle(cornerRadius: metrics.corner, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                theme.panelFill.opacity(0.985),
+                                theme.panelFill2.opacity(0.995),
+                                theme.panelFill.opacity(0.975)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
+
+                RoundedRectangle(cornerRadius: metrics.corner, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                theme.strokeA.opacity(0.05),
+                                Color.clear,
+                                theme.strokeB.opacity(0.04)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
         .overlay(
             RoundedRectangle(cornerRadius: metrics.corner, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [theme.strokeA.opacity(0.95), theme.strokeB.opacity(0.70)],
+                        colors: [
+                            theme.strokeA.opacity(0.92),
+                            theme.strokeB.opacity(0.72)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 2.6
+                    lineWidth: 2.2
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: max(8, metrics.corner - 6), style: .continuous)
-                .stroke(theme.glow.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: max(8, metrics.corner - 7), style: .continuous)
+                .stroke(theme.glow.opacity(0.12), lineWidth: 1)
                 .padding(6)
         )
-        .shadow(color: Color.black.opacity(0.45), radius: 26, x: 0, y: 14)
+        .shadow(color: Color.black.opacity(0.48), radius: 30, x: 0, y: 16)
+    }
+
+    private var handle: some View {
+        Capsule(style: .continuous)
+            .fill(theme.text.opacity(0.22))
+            .frame(width: 48, height: 5)
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text("Select Bet")
                     .font(typography.font(18))
                     .foregroundColor(theme.gold)
-                    .shadow(color: .black.opacity(0.35), radius: 8, x: 0, y: 6)
 
-                Text("Max \(formatCoins(maxAllowed))")
+                Text("Choose the amount for the next hand")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(theme.dim.opacity(0.95))
+                    .foregroundColor(theme.dim.opacity(0.9))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
 
             Spacer(minLength: 0)
 
-            Button { dismiss() } label: {
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Max")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(theme.dim.opacity(0.85))
+
+                Text(formatCoins(maxAllowed))
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(theme.text)
+            }
+
+            Button {
+                dismiss()
+            } label: {
                 ZStack {
-                    Circle()
-                        .fill(Color.black.opacity(0.22))
-                        .frame(width: 34, height: 34)
-                    Circle().stroke(theme.strokeB.opacity(0.12), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.05))
+
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(theme.strokeB.opacity(0.10), lineWidth: 1)
+
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .black))
-                        .foregroundColor(theme.text.opacity(0.92))
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(theme.text.opacity(0.88))
                 }
+                .frame(width: 34, height: 34)
             }
             .buttonStyle(.plain)
         }
     }
 
-    private func pill(title: String, value: String) -> some View {
-        VStack(spacing: 3) {
-            Text(title)
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundColor(theme.dim.opacity(0.95))
+    private var summaryRow: some View {
+        HStack(spacing: 10) {
+            summaryCard(
+                title: "Current",
+                value: formatCoins(selected),
+                icon: "circle.fill",
+                isAccent: false
+            )
 
-            Text(value)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
-                .foregroundColor(theme.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            summaryCard(
+                title: "Draft",
+                value: formatCoins(draft),
+                icon: "sparkles",
+                isAccent: true
+            )
         }
+    }
+
+    private func summaryCard(title: String, value: String, icon: String, isAccent: Bool) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(
+                        isAccent
+                        ? theme.strokeA.opacity(0.20)
+                        : Color.white.opacity(0.06)
+                    )
+                    .frame(width: 28, height: 28)
+
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundColor(
+                        isAccent
+                        ? theme.strokeA
+                        : theme.dim.opacity(0.95)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(theme.dim.opacity(0.9))
+
+                Text(value)
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundColor(theme.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 54)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Capsule(style: .continuous).fill(Color.black.opacity(0.18)))
-        .overlay(Capsule(style: .continuous).stroke(theme.strokeA.opacity(0.14), lineWidth: 1))
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.black.opacity(0.18))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    isAccent
+                    ? theme.strokeA.opacity(0.24)
+                    : theme.strokeB.opacity(0.10),
+                    lineWidth: 1
+                )
+        )
     }
 
     private var grid: some View {
@@ -1881,68 +1999,92 @@ private struct BetSheetOverlay: View {
                         UINotificationFeedbackGenerator().notificationOccurred(.warning)
                         return
                     }
+
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    draft = value
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                        draft = value
+                    }
                 }
             }
         }
-        .padding(.top, 2)
     }
 
     private var footer: some View {
         HStack(spacing: 10) {
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                draft = min(selected, maxAllowed)
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                    draft = min(selected, maxAllowed)
+                }
             } label: {
-                Capsule(style: .continuous)
-                    .fill(Color.black.opacity(0.18))
-                    .overlay(Capsule(style: .continuous).stroke(theme.strokeB.opacity(0.12), lineWidth: 1))
-                    .overlay(
-                        HStack(spacing: 7) {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 12, weight: .black))
-                            Text("Reset")
-                                .font(typography.font(14))
-                        }
-                        .foregroundColor(theme.text.opacity(0.92))
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.04))
+
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(theme.strokeB.opacity(0.10), lineWidth: 1)
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 12, weight: .black))
+
+                        Text("Reset")
+                            .font(typography.font(14))
+                    }
+                    .foregroundColor(theme.text.opacity(0.92))
+                }
             }
             .buttonStyle(.plain)
-            .frame(height: 46)
+            .frame(height: 50)
 
             Button {
-                let v = min(draft, maxAllowed)
+                let value = min(draft, maxAllowed)
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                onApply(v)
+                onApply(value)
                 dismiss()
             } label: {
-                Capsule(style: .continuous)
-                    .fill(LinearGradient(colors: [theme.strokeA, theme.strokeB], startPoint: .leading, endPoint: .trailing))
-                    .overlay(Capsule(style: .continuous).stroke(theme.gold.opacity(0.75), lineWidth: 1.4))
-                    .overlay(
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 14, weight: .black))
-                            Text("Apply \(formatCoins(min(draft, maxAllowed)))")
-                                .font(typography.font(14))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
-                        }
-                        .foregroundColor(.black.opacity(0.82))
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [theme.strokeA, theme.strokeB],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(theme.gold.opacity(0.78), lineWidth: 1.3)
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .black))
+
+                        Text("Apply \(formatCoins(min(draft, maxAllowed)))")
+                            .font(typography.font(14))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .foregroundColor(.black.opacity(0.84))
+                }
             }
             .buttonStyle(.plain)
-            .frame(height: 46)
+            .frame(height: 50)
         }
-        .padding(.top, 4)
     }
 
     private func dismiss() {
+        closeTask?.cancel()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        withAnimation(.easeOut(duration: 0.16)) { appear = false }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+
+        withAnimation(.easeOut(duration: 0.18)) {
+            appear = false
             dragY = 0
+        }
+
+        closeTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            guard !Task.isCancelled else { return }
             isPresented = false
         }
     }
@@ -1961,40 +2103,26 @@ private struct BetChip: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                Capsule(style: .continuous)
-                    .fill(
-                        isSelected
-                        ? LinearGradient(
-                            colors: [theme.strokeA.opacity(0.95), theme.strokeB.opacity(0.90)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        : LinearGradient(
-                            colors: [theme.panelFill2.opacity(0.96), theme.panelFill.opacity(0.92)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(backgroundFill)
 
-                Capsule(style: .continuous)
-                    .stroke(
-                        isSelected ? theme.gold.opacity(0.75) : theme.strokeB.opacity(0.10),
-                        lineWidth: isSelected ? 1.6 : 1.0
-                    )
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(borderColor, lineWidth: isSelected ? 1.5 : 1.0)
 
                 HStack(spacing: 8) {
                     ZStack {
                         Circle()
-                            .fill(Color.black.opacity(isSelected ? 0.16 : 0.22))
-                            .frame(width: 22, height: 22)
-                        Image(systemName: isSelected ? "sparkles" : "circle.fill")
-                            .font(.system(size: isSelected ? 11 : 7, weight: .black))
-                            .foregroundColor(isSelected ? Color.black.opacity(0.82) : theme.warm.opacity(0.90))
+                            .fill(iconBackground)
+                            .frame(width: 24, height: 24)
+
+                        Image(systemName: isSelected ? "checkmark" : "circle.fill")
+                            .font(.system(size: isSelected ? 10 : 7, weight: .black))
+                            .foregroundColor(iconForeground)
                     }
 
                     Text(title)
                         .font(typography.font(14))
-                        .foregroundColor(isSelected ? Color.black.opacity(0.82) : theme.text.opacity(isEnabled ? 0.92 : 0.35))
+                        .foregroundColor(titleColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
 
@@ -2002,14 +2130,60 @@ private struct BetChip: View {
                 }
                 .padding(.horizontal, 12)
             }
-            .opacity(isEnabled ? 1.0 : 0.65)
+            .scaleEffect(isSelected ? 1.0 : 0.985)
+            .opacity(isEnabled ? 1.0 : 0.45)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .frame(height: h)
     }
-}
 
+    private var backgroundFill: LinearGradient {
+        if isSelected {
+            return LinearGradient(
+                colors: [
+                    theme.strokeA.opacity(0.92),
+                    theme.strokeB.opacity(0.90)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [
+                theme.panelFill2.opacity(0.98),
+                theme.panelFill.opacity(0.94)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var borderColor: Color {
+        isSelected
+        ? theme.gold.opacity(0.78)
+        : theme.strokeB.opacity(0.10)
+    }
+
+    private var iconBackground: Color {
+        isSelected
+        ? Color.black.opacity(0.16)
+        : Color.white.opacity(0.05)
+    }
+
+    private var iconForeground: Color {
+        isSelected
+        ? Color.black.opacity(0.82)
+        : theme.warm.opacity(0.92)
+    }
+
+    private var titleColor: Color {
+        isSelected
+        ? Color.black.opacity(0.84)
+        : theme.text.opacity(isEnabled ? 0.94 : 0.35)
+    }
+}
 private enum PokerBotBrain {
     static func estimateStrength(hole: [PokerCard], allCards: [PokerCard], phase: GamePokerView.TablePhase) -> Double {
         if allCards.count >= 5 {

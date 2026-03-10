@@ -13,9 +13,9 @@ struct ContentView: View {
     private enum Assets {
         static let background = "back_lobby"
 
-        static let tabLobby = "lobby"
-        static let tabAchievs = "Achievs"
-        static let tabGame = "Game"
+        static let tabLobby = "home"
+        static let tabAchievs = "Achievements"
+        static let tabGame = "Games"
         static let tabQuests = "Quests"
     }
 
@@ -79,9 +79,9 @@ struct ContentView: View {
             .overlay(alignment: .bottom) {
                 ProjectClubTabBar(
                     items: [
-                        .init(tab: .lobby, icon: Assets.tabLobby, title: "Lobby"),
-                        .init(tab: .achievs, icon: Assets.tabAchievs, title: "Achievs"),
-                        .init(tab: .game, icon: Assets.tabGame, title: "Game"),
+                        .init(tab: .lobby, icon: Assets.tabLobby, title: "Home"),
+                        .init(tab: .achievs, icon: Assets.tabAchievs, title: "Achievements"),
+                        .init(tab: .game, icon: Assets.tabGame, title: "Games"),
                         .init(tab: .quests, icon: Assets.tabQuests, title: "Quests")
                     ],
                     selected: selectedTab,
