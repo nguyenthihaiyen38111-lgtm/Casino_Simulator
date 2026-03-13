@@ -1,4 +1,5 @@
 // Path: Casino_Simulator/Content/OnboardingView.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 import UIKit

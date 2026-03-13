@@ -1,4 +1,5 @@
 // Path: Shared/SeededRNG.swift
+//Developer Chuong Nguyen
 
 import Foundation
 

@@ -1,4 +1,5 @@
 // Path: Games/GameEgypt.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 import UIKit

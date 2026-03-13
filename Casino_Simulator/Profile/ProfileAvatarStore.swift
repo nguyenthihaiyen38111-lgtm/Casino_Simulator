@@ -1,4 +1,5 @@
 // Path: Profile/ProfileAvatarStore.swift
+//Developer Chuong Nguyen
 
 import Foundation
 import SwiftUI

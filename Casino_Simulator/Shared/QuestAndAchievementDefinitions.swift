@@ -1,4 +1,5 @@
 // Path: Shared/QuestAndAchievementDefinitions.swift
+//Developer Chuong Nguyen
 
 import Foundation
 

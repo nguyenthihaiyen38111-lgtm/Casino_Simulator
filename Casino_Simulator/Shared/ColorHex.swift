@@ -1,4 +1,5 @@
 // Path: Shared/Color+Hex.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 

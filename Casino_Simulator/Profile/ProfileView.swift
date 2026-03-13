@@ -1,4 +1,5 @@
 // Path: Profile/ProfileView.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 import UIKit

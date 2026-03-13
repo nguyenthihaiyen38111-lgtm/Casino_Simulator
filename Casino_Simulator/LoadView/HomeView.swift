@@ -1,4 +1,5 @@
 // Path: loadView/LoadView.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 import UIKit

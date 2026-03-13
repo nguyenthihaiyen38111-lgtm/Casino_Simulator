@@ -1,4 +1,5 @@
 // Path: Shared/SlotMath.swift
+//Developer Chuong Nguyen
 
 import Foundation
 import UIKit

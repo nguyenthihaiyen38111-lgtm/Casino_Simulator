@@ -1,4 +1,5 @@
 // Path: UI/TopHUDView.swift
+//Developer Chuong Nguyen
 
 import SwiftUI
 import UIKit
