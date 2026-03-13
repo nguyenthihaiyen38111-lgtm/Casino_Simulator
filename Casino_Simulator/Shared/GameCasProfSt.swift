@@ -228,6 +228,11 @@ final class GameCasProfSt: ObservableObject {
     private var playtimeAccumSinceSave: Int = 0
     private let playtimeSaveIntervalSeconds: Int = 15
 
+    private var adminUnlockAllGames: Bool {
+        get { UserDefaults.standard.bool(forKey: "admin_unlock_all_games") }
+        set { UserDefaults.standard.set(newValue, forKey: "admin_unlock_all_games") }
+    }
+
     var coins: Int { state.balance }
     var level: Int { state.rank }
     var xpInLevel: Int { state.xp }
@@ -302,6 +307,10 @@ final class GameCasProfSt: ObservableObject {
     }
 
     func isModeUnlocked(_ mode: CasinoMode) -> Bool {
+        if adminUnlockAllGames {
+            return true
+        }
+
         switch mode {
         case .hot, .lucky:
             return true
@@ -565,8 +574,19 @@ final class GameCasProfSt: ObservableObject {
         saveChanges()
     }
 
+    func unlockAllGamesForTesting() {
+        adminUnlockAllGames = true
+        objectWillChange.send()
+    }
+
+    func resetTestingGameUnlocks() {
+        adminUnlockAllGames = false
+        objectWillChange.send()
+    }
+
     func resetAllProgress() {
         let now = Date()
+        adminUnlockAllGames = false
         state = SaveState.initial(at: now)
         didRegisterSessionLaunch = false
         registerAppLaunch(now: now)

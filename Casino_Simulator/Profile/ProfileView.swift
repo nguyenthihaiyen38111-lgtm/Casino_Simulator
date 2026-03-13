@@ -14,6 +14,12 @@ struct ProfileView: View {
     @State private var isAvatarPickerPresented = false
     @State private var showPhotoAccessDeniedAlert = false
     @State private var showResetConfirm = false
+    @State private var showAdminPanel = false
+    @State private var showAdminPasswordSheet = false
+    @State private var adminPassword = ""
+    @State private var showAdminPasswordError = false
+
+    @StateObject private var adminAccess = AdminToolsAccess()
 
     @State private var appear = false
     @State private var glowPulse = false
@@ -21,6 +27,10 @@ struct ProfileView: View {
     private enum Assets {
         static let background = "back_lobby"
         static let avatarPlaceholder = "avatar_placeholder"
+    }
+
+    private enum AdminGate {
+        static let password = "Admin"
     }
 
     private enum Palette {
@@ -238,6 +248,7 @@ struct ProfileView: View {
                         playerCard(m: m, isCompact: isCompact)
                         statsGrid(m: m)
                         progressCard(m: m)
+                        adminPanelButton(m: m)
                         resetProgressButton(m: m)
 
                         Color.clear
@@ -255,6 +266,7 @@ struct ProfileView: View {
                 appear = true
             }
             glowPulse = true
+            adminAccess.reloadFromStorage()
         }
         .sheet(isPresented: $isAvatarPickerPresented) {
             ProfileImagePicker { image in
@@ -263,6 +275,33 @@ struct ProfileView: View {
                 avatarStore.setImage(prepared)
             }
             .applyMediumDetentIfAvailable()
+        }
+        .sheet(isPresented: $showAdminPasswordSheet, onDismiss: {
+            adminPassword = ""
+            showAdminPasswordError = false
+        }) {
+            AdminPasswordSheet(
+                password: $adminPassword,
+                showError: $showAdminPasswordError,
+                onSubmit: {
+                    openAdminPanelIfPasswordValid()
+                }
+            )
+            .presentationDetents([.height(250)])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showAdminPanel) {
+            AdminToolsPanel(
+                adminAccess: adminAccess,
+                onUnlockAllGames: {
+                    profile.unlockAllGamesForTesting()
+                },
+                onResetTestingUnlocks: {
+                    profile.resetTestingGameUnlocks()
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .alert("Photo Access Needed", isPresented: $showPhotoAccessDeniedAlert) {
             Button("Cancel", role: .cancel) {}
@@ -276,6 +315,7 @@ struct ProfileView: View {
         .confirmationDialog("Reset Progress?", isPresented: $showResetConfirm, titleVisibility: .visible) {
             Button("Reset Everything", role: .destructive) {
                 profile.resetAllProgress()
+                adminAccess.setUnlockAllGames(false)
                 ProfileMetaStorage.shared.reset()
                 avatarStore.removeImage()
             }
@@ -526,6 +566,48 @@ struct ProfileView: View {
                 RoundedRectangle(cornerRadius: m.actionCorner, style: .continuous)
                     .stroke(Color.white.opacity(0.10), lineWidth: 1)
             )
+        }
+        .buttonStyle(PressScaleButtonStyle())
+    }
+
+    private func adminPanelButton(m: Layout.Metrics) -> some View {
+        Button {
+            haptic()
+            adminPassword = ""
+            showAdminPasswordError = false
+            showAdminPasswordSheet = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: m.actionIcon, weight: .black))
+                    .foregroundColor(.white)
+
+                Text("Admin Panel")
+                    .font(.system(size: m.actionFont, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: m.actionHeight)
+            .background(
+                RoundedRectangle(cornerRadius: m.actionCorner, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "8A631C").opacity(0.95),
+                                Color(hex: "4A2E0A").opacity(0.95)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: m.actionCorner, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 7)
         }
         .buttonStyle(PressScaleButtonStyle())
     }
@@ -908,8 +990,154 @@ struct ProfileView: View {
         }
     }
 
+    private func openAdminPanelIfPasswordValid() {
+        let value = adminPassword.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard value == AdminGate.password else {
+            showAdminPasswordError = true
+            return
+        }
+
+        showAdminPasswordError = false
+        adminPassword = ""
+        adminAccess.enablePanel()
+        adminAccess.reloadFromStorage()
+
+        Task { @MainActor in
+            showAdminPasswordSheet = false
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            showAdminPanel = true
+        }
+    }
+
     private func haptic() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+}
+
+private struct AdminPasswordSheet: View {
+    @Binding var password: String
+    @Binding var showError: Bool
+
+    let onSubmit: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isPasswordFocused: Bool
+
+    private enum Palette {
+        static let background = Color(hex: "140507")
+        static let card = Color(hex: "3A0D15")
+        static let inner = Color(hex: "2A0810")
+        static let gold = Color(hex: "E0B35A")
+        static let goldSoft = Color(hex: "FFF0C8")
+        static let text = Color(hex: "FFF4DD")
+        static let textDim = Color.white.opacity(0.72)
+        static let error = Color(hex: "FF8E7E")
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.background
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                VStack(spacing: 8) {
+                    Text("Admin Access")
+                        .font(.system(size: 26, weight: .black, design: .rounded))
+                        .foregroundColor(Palette.text)
+
+                    Text("Enter password to open the admin panel")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(Palette.textDim)
+                        .multilineTextAlignment(.center)
+                }
+
+                VStack(spacing: 10) {
+                    SecureField("Password", text: $password)
+                        .textContentType(.password)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .focused($isPasswordFocused)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            onSubmit()
+                        }
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(Palette.text)
+                        .padding(.horizontal, 14)
+                        .frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Palette.inner)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Palette.gold, Palette.goldSoft],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+
+                    if showError {
+                        Text("Wrong password")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(Palette.error)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .foregroundColor(Palette.text)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Palette.card)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        onSubmit()
+                    } label: {
+                        Text("Open")
+                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .foregroundColor(Color(hex: "2C1A08"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Palette.goldSoft, Palette.gold],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+        }
+        .onAppear {
+            isPasswordFocused = true
+        }
     }
 }
 

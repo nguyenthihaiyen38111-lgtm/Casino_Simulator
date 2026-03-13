@@ -36,17 +36,17 @@ struct GameFruitView: View {
     }
 
     private enum Palette {
-        static let blockFill = Color(hex: "8B1C2F")
-        static let innerFill = Color(hex: "6E1525")
+        static let blockFill = Color(hex: "4A0F1E")
+        static let innerFill = Color(hex: "2E0812")
 
-        static let strokeA = Color(hex: "FF0000")
-        static let strokeB = Color(hex: "FDE9E2")
+        static let strokeA = Color(hex: "E2B35A")
+        static let strokeB = Color(hex: "FFF0C8")
 
-        static let divider = Color(hex: "F7B7AA")
-        static let text = Color(hex: "FFF2EC")
+        static let divider = Color(hex: "C9973D")
+        static let text = Color(hex: "FFF4DD")
 
-        static let glow = Color(hex: "FFD6CF")
-        static let win = Color(hex: "FF7A7A")
+        static let glow = Color(hex: "FFD98A")
+        static let win = Color(hex: "F5C469")
     }
 
     private enum Typography {
@@ -830,9 +830,9 @@ private struct FruitPaylineGlowBehindSymbols: View {
     @State private var floatOn: Bool = false
 
     private enum Palette {
-        static let glow = Color(hex: "FFE1DA")
-        static let core = Color(hex: "FF0000")
-        static let win = Color(hex: "FF7A7A")
+        static let glow = Color(hex: "FFF0C8")
+        static let core = Color(hex: "D6A03E")
+        static let win = Color(hex: "F5C469")
     }
 
     var body: some View {
@@ -1104,5 +1104,49 @@ private struct FruitPayline: Identifiable, Equatable {
             let c = grid.symbol(col: 2, row: rowsByReel[2])
         else { return false }
         return a == b && b == c
+    }
+}
+
+private extension Color {
+    init(hex: String) {
+        let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&int)
+
+        let a: UInt64
+        let r: UInt64
+        let g: UInt64
+        let b: UInt64
+
+        switch cleaned.count {
+        case 3:
+            a = 255
+            r = ((int >> 8) & 0xF) * 17
+            g = ((int >> 4) & 0xF) * 17
+            b = (int & 0xF) * 17
+        case 6:
+            a = 255
+            r = int >> 16
+            g = (int >> 8) & 0xFF
+            b = int & 0xFF
+        case 8:
+            a = int >> 24
+            r = (int >> 16) & 0xFF
+            g = (int >> 8) & 0xFF
+            b = int & 0xFF
+        default:
+            a = 255
+            r = 255
+            g = 255
+            b = 255
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 }
