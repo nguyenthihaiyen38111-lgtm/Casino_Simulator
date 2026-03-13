@@ -383,12 +383,59 @@ enum AchievementDefinitions {
         rewardCoins: 6_000
     )
 
+    static let unlockCastle = AchievementDefinition(
+        id: "ach.unlock.castle",
+        icon: "crown",
+        title: "Castle Unlocked",
+        subtitle: "Unlock Castle mode",
+        target: 100,
+        rewardCoins: 15_000
+    )
+
+    static let unlockPharaoh = AchievementDefinition(
+        id: "ach.unlock.pharaoh",
+        icon: "crown",
+        title: "Pharaoh Unlocked",
+        subtitle: "Unlock Pharaoh mode",
+        target: 100,
+        rewardCoins: 20_000
+    )
+
+    static let unlockFruit = AchievementDefinition(
+        id: "ach.unlock.fruit",
+        icon: "crown",
+        title: "Fruit Unlocked",
+        subtitle: "Unlock Fruit mode",
+        target: 100,
+        rewardCoins: 25_000
+    )
+
+    static let unlockPoker = AchievementDefinition(
+        id: "ach.unlock.poker",
+        icon: "crown",
+        title: "Poker Unlocked",
+        subtitle: "Unlock Poker mode",
+        target: 100,
+        rewardCoins: 40_000
+    )
+
+    static let unlockFish = AchievementDefinition(
+        id: "ach.unlock.fish",
+        icon: "crown",
+        title: "Fish Unlocked",
+        subtitle: "Unlock Fish mode",
+        target: 100,
+        rewardCoins: 60_000
+    )
+
     static let all: [AchievementDefinition] = [
         dailyStreak5,
         level5, level10, level15, level20, level30, level40, level60, level80, level100,
         spins10, spins20, spins30, spins40, spins50, spins80, totalSpins100, spins200, spins250, spins500,
-        hotPlays50
+        hotPlays50,
+        unlockCastle, unlockPharaoh, unlockFruit, unlockPoker, unlockFish
     ]
+
 
     static let byId: [String: AchievementDefinition] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 }

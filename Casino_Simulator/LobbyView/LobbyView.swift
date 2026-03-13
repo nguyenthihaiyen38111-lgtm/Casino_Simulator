@@ -1,4 +1,3 @@
-//
 // Path: lobbyView/LobbyView.swift
 import SwiftUI
 import UIKit
@@ -48,6 +47,11 @@ struct LobbyView: View {
         static let timerFill = Color.black.opacity(0.28)
         static let timerStroke = Color.white.opacity(0.16)
         static let timerText = Color.white
+
+        static let lockFill = Color.black.opacity(0.48)
+        static let lockText = Color.white
+        static let lockChipFill = Color.black.opacity(0.22)
+        static let lockChipStroke = Color.white.opacity(0.10)
     }
 
     private enum Typography {
@@ -567,6 +571,7 @@ struct LobbyView: View {
         HStack(spacing: m.gamesRowSpacing) {
             gameCard(
                 m: m,
+                mode: .hot,
                 imageName: Assets.hot,
                 strokeA: Palette.gameCardRedA,
                 strokeB: Palette.gameCardRedB,
@@ -577,6 +582,7 @@ struct LobbyView: View {
 
             gameCard(
                 m: m,
+                mode: .emerald,
                 imageName: Assets.emerald,
                 strokeA: Palette.gameCardGreenA,
                 strokeB: Palette.gameCardGreenB,
@@ -587,6 +593,7 @@ struct LobbyView: View {
 
             gameCard(
                 m: m,
+                mode: .fruit,
                 imageName: Assets.fruit,
                 strokeA: Palette.gameCardRedA,
                 strokeB: Palette.gameCardRedB,
@@ -604,6 +611,7 @@ struct LobbyView: View {
             HStack(spacing: m.extraGridColSpacing) {
                 extraCard(
                     m: m,
+                    mode: .pharaoh,
                     imageName: Assets.pharaoh,
                     strokeA: Palette.gameCardRedA,
                     strokeB: Palette.gameCardRedB,
@@ -614,6 +622,7 @@ struct LobbyView: View {
 
                 extraCard(
                     m: m,
+                    mode: .poker,
                     imageName: Assets.poker,
                     strokeA: Palette.gameCardRedA,
                     strokeB: Palette.gameCardRedB,
@@ -624,6 +633,7 @@ struct LobbyView: View {
 
                 extraCard(
                     m: m,
+                    mode: .fish,
                     imageName: Assets.fish,
                     strokeA: Palette.gameCardRedA,
                     strokeB: Palette.gameCardRedB,
@@ -639,6 +649,7 @@ struct LobbyView: View {
     @ViewBuilder
     private func gameCard(
         m: Layout.Metrics,
+        mode: GameCasProfSt.CasinoMode,
         imageName: String,
         strokeA: Color,
         strokeB: Color,
@@ -646,6 +657,8 @@ struct LobbyView: View {
         height: CGFloat,
         onTap: @escaping () -> Void
     ) -> some View {
+        let locked = !profile.isModeUnlocked(mode)
+
         Button(action: onTap) {
             Image(imageName)
                 .resizable()
@@ -666,6 +679,7 @@ struct LobbyView: View {
                             lineWidth: m.gamesCardStrokeWidth
                         )
                 )
+                .overlay(lockOverlay(isLocked: locked, corner: m.gamesCardCornerRadius))
                 .clipped()
                 .contentShape(RoundedRectangle(cornerRadius: m.gamesCardCornerRadius, style: .continuous))
         }
@@ -676,6 +690,7 @@ struct LobbyView: View {
     @ViewBuilder
     private func extraCard(
         m: Layout.Metrics,
+        mode: GameCasProfSt.CasinoMode,
         imageName: String,
         strokeA: Color,
         strokeB: Color,
@@ -683,6 +698,8 @@ struct LobbyView: View {
         height: CGFloat,
         onTap: @escaping () -> Void
     ) -> some View {
+        let locked = !profile.isModeUnlocked(mode)
+
         Button(action: onTap) {
             Image(imageName)
                 .resizable()
@@ -703,10 +720,39 @@ struct LobbyView: View {
                             lineWidth: m.extraCardStrokeWidth
                         )
                 )
+                .overlay(lockOverlay(isLocked: locked, corner: m.extraCardCornerRadius))
                 .clipped()
                 .contentShape(RoundedRectangle(cornerRadius: m.extraCardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Game")
+    }
+
+    @ViewBuilder
+    private func lockOverlay(isLocked: Bool, corner: CGFloat) -> some View {
+        if isLocked {
+            ZStack {
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Palette.lockFill)
+
+                VStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 22, weight: .heavy))
+                        .foregroundColor(Palette.lockText)
+
+                    Text("Locked")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundColor(Palette.lockText)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Palette.lockChipFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Palette.lockChipStroke, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
     }
 }

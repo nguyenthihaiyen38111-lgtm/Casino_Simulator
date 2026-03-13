@@ -925,19 +925,43 @@ private enum ProfileNumberFormatter {
 final class ProfileMetaStorage {
     static let shared = ProfileMetaStorage()
 
-    private let appOpenCountKey = "projectx.profile.meta.appOpenCount.v1"
+    private let storageKey = "casino_simulator.profile.meta.appOpenCount.v1"
+    private let legacyKeys = [
+        "projectx.profile.meta.appOpenCount.v1",
+        "project.profile.meta.appOpenCount.v1"
+    ]
+
+    private init() {
+        migrateIfNeeded()
+    }
 
     var appOpenCount: Int {
-        UserDefaults.standard.integer(forKey: appOpenCountKey)
+        migrateIfNeeded()
+        return UserDefaults.standard.integer(forKey: storageKey)
     }
 
     func registerAppOpen() {
+        migrateIfNeeded()
         let next = appOpenCount + 1
-        UserDefaults.standard.set(next, forKey: appOpenCountKey)
+        UserDefaults.standard.set(next, forKey: storageKey)
     }
 
     func reset() {
-        UserDefaults.standard.removeObject(forKey: appOpenCountKey)
+        UserDefaults.standard.removeObject(forKey: storageKey)
+        for key in legacyKeys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    private func migrateIfNeeded() {
+        if UserDefaults.standard.object(forKey: storageKey) != nil { return }
+
+        for key in legacyKeys {
+            if let obj = UserDefaults.standard.object(forKey: key) {
+                UserDefaults.standard.set(obj, forKey: storageKey)
+                break
+            }
+        }
     }
 }
 

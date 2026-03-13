@@ -28,6 +28,12 @@ struct GamesView: View {
         static let greenStrokeB = Color(hex: "04913F")
         static let blueStrokeA = Color(hex: "00A9F8")
         static let blueStrokeB = Color(hex: "00306D")
+
+        static let lockFill = Color.black.opacity(0.48)
+        static let lockStroke = Color.white.opacity(0.18)
+        static let lockText = Color.white
+        static let lockChipFill = Color.black.opacity(0.22)
+        static let lockChipStroke = Color.white.opacity(0.10)
     }
 
     private enum Layout {
@@ -148,6 +154,7 @@ struct GamesView: View {
     @ViewBuilder
     private func eventCard(m: Layout.Metrics, assetName: String, mode: GameCasProfSt.CasinoMode) -> some View {
         let stroke = eventStroke(for: mode)
+        let locked = !profile.isModeUnlocked(mode)
 
         Image(assetName)
             .resizable()
@@ -167,6 +174,7 @@ struct GamesView: View {
                         lineWidth: m.eventStrokeWidth
                     )
             )
+            .overlay(lockOverlay(isLocked: locked, corner: m.eventCornerRadius))
             .clipped()
             .contentShape(RoundedRectangle(cornerRadius: m.eventCornerRadius, style: .continuous))
     }
@@ -186,67 +194,15 @@ struct GamesView: View {
     private func gamesGrid(m: Layout.Metrics, cardWidth: CGFloat, cardHeight: CGFloat) -> some View {
         VStack(spacing: m.gridRowSpacing) {
             HStack(spacing: m.gridColSpacing) {
-                gameCard(
-                    m: m,
-                    imageName: Assets.hot,
-                    strokeA: Palette.redStrokeA,
-                    strokeB: Palette.redStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.hot) }
-                )
-
-                gameCard(
-                    m: m,
-                    imageName: Assets.emerald,
-                    strokeA: Palette.greenStrokeA,
-                    strokeB: Palette.greenStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.emerald) }
-                )
-
-                gameCard(
-                    m: m,
-                    imageName: Assets.pharaoh,
-                    strokeA: Palette.redStrokeA,
-                    strokeB: Palette.redStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.pharaoh) }
-                )
+                gameCard(m: m, mode: .hot, imageName: Assets.hot, strokeA: Palette.redStrokeA, strokeB: Palette.redStrokeB, width: cardWidth, height: cardHeight)
+                gameCard(m: m, mode: .emerald, imageName: Assets.emerald, strokeA: Palette.greenStrokeA, strokeB: Palette.greenStrokeB, width: cardWidth, height: cardHeight)
+                gameCard(m: m, mode: .pharaoh, imageName: Assets.pharaoh, strokeA: Palette.redStrokeA, strokeB: Palette.redStrokeB, width: cardWidth, height: cardHeight)
             }
 
             HStack(spacing: m.gridColSpacing) {
-                gameCard(
-                    m: m,
-                    imageName: Assets.fruit,
-                    strokeA: Palette.redStrokeA,
-                    strokeB: Palette.redStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.fruit) }
-                )
-
-                gameCard(
-                    m: m,
-                    imageName: Assets.poker,
-                    strokeA: Palette.redStrokeA,
-                    strokeB: Palette.redStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.poker) }
-                )
-
-                gameCard(
-                    m: m,
-                    imageName: Assets.fish,
-                    strokeA: Palette.blueStrokeA,
-                    strokeB: Palette.blueStrokeB,
-                    width: cardWidth,
-                    height: cardHeight,
-                    onTap: { onOpenCasino(.fish) }
-                )
+                gameCard(m: m, mode: .fruit, imageName: Assets.fruit, strokeA: Palette.redStrokeA, strokeB: Palette.redStrokeB, width: cardWidth, height: cardHeight)
+                gameCard(m: m, mode: .poker, imageName: Assets.poker, strokeA: Palette.redStrokeA, strokeB: Palette.redStrokeB, width: cardWidth, height: cardHeight)
+                gameCard(m: m, mode: .fish, imageName: Assets.fish, strokeA: Palette.blueStrokeA, strokeB: Palette.blueStrokeB, width: cardWidth, height: cardHeight)
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -255,14 +211,18 @@ struct GamesView: View {
     @ViewBuilder
     private func gameCard(
         m: Layout.Metrics,
+        mode: GameCasProfSt.CasinoMode,
         imageName: String,
         strokeA: Color,
         strokeB: Color,
         width: CGFloat,
-        height: CGFloat,
-        onTap: @escaping () -> Void
+        height: CGFloat
     ) -> some View {
-        Button(action: onTap) {
+        let locked = !profile.isModeUnlocked(mode)
+
+        Button {
+            onOpenCasino(mode)
+        } label: {
             Image(imageName)
                 .resizable()
                 .scaledToFill()
@@ -282,10 +242,38 @@ struct GamesView: View {
                             lineWidth: m.cardStrokeWidth
                         )
                 )
+                .overlay(lockOverlay(isLocked: locked, corner: m.cardCornerRadius))
                 .clipped()
                 .contentShape(RoundedRectangle(cornerRadius: m.cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Game")
+    }
+
+    @ViewBuilder
+    private func lockOverlay(isLocked: Bool, corner: CGFloat) -> some View {
+        if isLocked {
+            ZStack {
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Palette.lockFill)
+
+                VStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 22, weight: .heavy))
+                        .foregroundColor(Palette.lockText)
+
+                    Text("Locked")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundColor(Palette.lockText)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Palette.lockChipFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Palette.lockChipStroke, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
     }
 }

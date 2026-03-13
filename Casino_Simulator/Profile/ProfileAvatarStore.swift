@@ -11,7 +11,8 @@ final class ProfileAvatarStore: ObservableObject {
 
     @Published private(set) var image: UIImage?
 
-    private let storageKey = "projectx.profile.avatar.jpeg.v1"
+    private let storageKey = "casino_simulator.profile.avatar.jpeg.v1"
+    private let legacyKeys = ["projectx.profile.avatar.jpeg.v1"]
 
     private init() {
         load()
@@ -28,8 +29,18 @@ final class ProfileAvatarStore: ObservableObject {
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
-        image = UIImage(data: data)
+        if let data = UserDefaults.standard.data(forKey: storageKey) {
+            image = UIImage(data: data)
+            return
+        }
+
+        for key in legacyKeys {
+            if let data = UserDefaults.standard.data(forKey: key) {
+                UserDefaults.standard.set(data, forKey: storageKey)
+                image = UIImage(data: data)
+                return
+            }
+        }
     }
 
     private func save(_ image: UIImage) {

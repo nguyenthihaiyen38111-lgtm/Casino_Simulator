@@ -1,7 +1,3 @@
-//
-//  Casino_Simulator.swift
-//
-
 import SwiftUI
 
 @main
@@ -14,20 +10,32 @@ struct Casino_Simulator: App {
 }
 
 struct AppRootView: View {
-    @State private var showMainContent = false
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+
+    @State private var didFinishLoading = false
+    @State private var showOnboarding = false
 
     var body: some View {
         ZStack {
-            if showMainContent {
-                ContentView()
-                    .transition(.opacity)
-            } else {
+            if !didFinishLoading {
                 LoadView {
                     withAnimation(.easeInOut(duration: 0.35)) {
-                        showMainContent = true
+                        didFinishLoading = true
+                        showOnboarding = !hasSeenOnboarding
                     }
                 }
                 .transition(.opacity)
+            } else if showOnboarding {
+                OnboardingView {
+                    hasSeenOnboarding = true
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showOnboarding = false
+                    }
+                }
+                .transition(.opacity)
+            } else {
+                ContentView()
+                    .transition(.opacity)
             }
         }
     }

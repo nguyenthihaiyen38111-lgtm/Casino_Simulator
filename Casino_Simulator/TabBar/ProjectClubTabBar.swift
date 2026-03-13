@@ -9,6 +9,7 @@ struct ProjectClubTabBar: View {
         case achievs
         case game
         case quests
+        case unlocks
     }
 
     struct Item: Identifiable, Hashable {
@@ -21,33 +22,30 @@ struct ProjectClubTabBar: View {
     let items: [Item]
     let selected: Tab
     let onSelect: (Tab) -> Void
+    let availableWidth: CGFloat
 
     static func preferredHeight(forWidth w: CGFloat) -> CGFloat {
         Layout.metrics(forWidth: w).height
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let w = proxy.size.width
-            let m = Layout.metrics(forWidth: w)
+        let m = Layout.metrics(forWidth: availableWidth)
+        let outer = RoundedRectangle(cornerRadius: m.cornerRadius, style: .continuous)
 
-            let outer = RoundedRectangle(cornerRadius: m.cornerRadius, style: .continuous)
-
-            ZStack {
-                outer
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Palette.fillA, location: 0.0),
-                                .init(color: Palette.fillB, location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+        ZStack {
+            outer
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Palette.fillA, location: 0.0),
+                            .init(color: Palette.fillB, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-
-                outer
-                    .stroke(
+                )
+                .overlay(
+                    outer.stroke(
                         LinearGradient(
                             stops: [
                                 .init(color: Palette.strokeA, location: 0.0),
@@ -58,24 +56,20 @@ struct ProjectClubTabBar: View {
                         ),
                         lineWidth: m.strokeWidth
                     )
+                )
 
-                HStack(spacing: 0) {
-                    ForEach(items) { item in
-                        tabItem(m: m, item: item, isSelected: item.tab == selected)
-                            .frame(maxWidth: .infinity)
-                    }
+            HStack(spacing: 0) {
+                ForEach(items) { item in
+                    tabItem(m: m, item: item, isSelected: item.tab == selected)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, m.innerPadH)
-                .padding(.top, m.itemTopPad)
-                .padding(.bottom, m.innerBottomPad)
             }
-            .frame(height: m.height)
-            .frame(width: proxy.size.width, alignment: .center)
+            .padding(.horizontal, m.innerPadH)
+            .padding(.bottom, m.innerBottomPad)
         }
-        .frame(height: Self.preferredHeight(forWidth: UIScreen.main.bounds.width))
+        .frame(height: m.height)
     }
 
-    @ViewBuilder
     private func tabItem(m: Layout.Metrics, item: Item, isSelected: Bool) -> some View {
         Button {
             onSelect(item.tab)
@@ -88,8 +82,11 @@ struct ProjectClubTabBar: View {
 
                 Text(item.title)
                     .font(Typography.font(size: m.labelSize))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                     .foregroundColor(Palette.text.opacity(isSelected ? 1.0 : 0.85))
             }
+            .padding(.top, m.itemTopPad)
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
@@ -98,11 +95,11 @@ struct ProjectClubTabBar: View {
     }
 
     private enum Palette {
-        static let fillA = Color(hex: "8E0509")
-        static let fillB = Color(hex: "220207")
-        static let strokeA = Color(hex: "FE8277")
-        static let strokeB = Color(hex: "62090D")
-        static let text = Color.white
+        static let fillA = Color(hex: "5D0204")
+        static let fillB = Color(hex: "510104")
+        static let strokeA = Color(hex: "E92933")
+        static let strokeB = Color(hex: "B51B2D")
+        static let text = Color(hex: "FDF2B7")
     }
 
     private enum Typography {
@@ -141,7 +138,7 @@ struct ProjectClubTabBar: View {
             strokeWidth: 3,
             innerPadH: 16,
             iconSize: 28,
-            labelSize: 16,
+            labelSize: 14,
             itemTopPad: 8,
             labelTopGap: 6,
             innerBottomPad: 8
@@ -153,7 +150,7 @@ struct ProjectClubTabBar: View {
             strokeWidth: 3.5,
             innerPadH: 18,
             iconSize: 30,
-            labelSize: 17,
+            labelSize: 15,
             itemTopPad: 9,
             labelTopGap: 6,
             innerBottomPad: 9
@@ -162,5 +159,30 @@ struct ProjectClubTabBar: View {
         static func metrics(forWidth w: CGFloat) -> Metrics {
             isCompact(w) ? compact : regular
         }
+    }
+}
+
+private extension Color {
+    init(hex: String) {
+        let cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
+        var value: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&value)
+
+        let r: UInt64
+        let g: UInt64
+        let b: UInt64
+
+        switch cleaned.count {
+        case 6:
+            r = (value >> 16) & 0xFF
+            g = (value >> 8) & 0xFF
+            b = value & 0xFF
+        default:
+            r = 255
+            g = 255
+            b = 255
+        }
+
+        self.init(.sRGB, red: Double(r) / 255.0, green: Double(g) / 255.0, blue: Double(b) / 255.0, opacity: 1)
     }
 }
